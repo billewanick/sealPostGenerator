@@ -126,9 +126,8 @@ allBlogPosts config = map f zippedDates
 
 writeToFile :: Config -> (FilePath, Text) -> IO()
 writeToFile config (fp, txt) = do
-  -- fileExists <- doesFileExist fp'
-  -- unless fileExists (write fp' txt)
-  write fp' txt
+  fileExists <- doesFileExist fp'
+  unless fileExists (write fp' txt)
   where
     write = TIO.writeFile
     fp'   = postsOutputPath config <> "/" <> fp
