@@ -97,8 +97,11 @@ blogPost
   -> Text
   -> Text
   -> Day
+  -> FilePath
   -> Text
-blogPost title see adj1 adj2 seal date =
+blogPost title see adj1 adj2 seal date imagesPath =
+  let imagesPath' = T.pack imagesPath
+  in
   [text|
     ---
     title: $title
@@ -106,7 +109,7 @@ blogPost title see adj1 adj2 seal date =
 
     $see this $adj1, $adj2 seal!
     <img
-      src="/images/$seal"
+      src="$imagesPath'/$seal"
       alt="A picture of a $adj1, $adj2 seal! <3"
       width="400"
     />
@@ -138,6 +141,7 @@ sealText config n date = ( fileName', bp)
         "older"
         "birthdaySeal.jpg"
         date
+        (sealImagesPath config)
 
     blogPost' (_, 04, 01) =
       blogPost
@@ -147,6 +151,7 @@ sealText config n date = ( fileName', bp)
         "supermodel, singing"
         "singerSeal.jpg"
         date
+        (sealImagesPath config)
 
     blogPost' (_, _, _) =
       blogPost
@@ -156,22 +161,23 @@ sealText config n date = ( fileName', bp)
         (randomPull $ adjectives2 config)
         (randomPull $ unsafeListDirContents $ sealImagesPath config)
         date
+        (sealImagesPath config)
 
 
 {-
   Utils
 -}
-{-
-  Gives a random number between from and to
-  Uses unsafeIO to get the number out of IO
-  It's safe because we're only shuffling
--}
+  {-
+    Gives a random number between from and to
+    Uses unsafeIO to get the number out of IO
+    It's safe because we're only shuffling
+  -}
 randomNum :: Random a => a -> a -> a
 randomNum from to = unsafePerformIO $ randomRIO (from, to)
 
-{-
-  Given a list, returns a random element
--}
+  {-
+    Given a list, returns a random element
+  -}
 randomPull :: [a] -> a
 randomPull lst = lst !! r'
   where r' = randomNum 0 l
