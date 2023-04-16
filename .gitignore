@@ -1,0 +1,13 @@
+# Haskell stuff
+*.dyn_hi
+*.dyn_o
+*.hi
+*.o
+dist
+generateSealPosts
+
+# Direnv lorri stuff
+.direnv
+
+# Too many posts, hiding for now
+posts
