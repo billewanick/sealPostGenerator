@@ -1,9 +1,7 @@
 #! /usr/bin/env nix-shell
 #! nix-shell -p "haskellPackages.ghcWithPackages (ps: with ps; [dhall neat-interpolation random])"
 #! nix-shell -i runghc
-{-
-  Must be run in folder containing the source code
--}
+
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
@@ -53,7 +51,7 @@ main = do
   putStrLn "Validated config successfully"
 
   createDirectoryIfMissing True postsOutputPath'
-  unsafeGenerateAllBlogs config
+  generateAllBlogPosts config
   putStrLn $ "Generated blog posts successfully to " <> postsOutputPath'
 
 
@@ -61,22 +59,24 @@ main = do
   For all the blog posts
   Write them to file
 -}
-unsafeGenerateAllBlogs :: Config -> IO ()
-unsafeGenerateAllBlogs config =
-  forM_ (allBlogPosts config) (writeToFile config)
+generateAllBlogPosts :: Config -> IO ()
+generateAllBlogPosts config = forM_ allBlogPosts' writeToFile'
+  where
+    allBlogPosts' = allBlogPosts config
+    writeToFile' = writeToFile config
 
 allBlogPosts :: Config -> [(FilePath, Text)]
-allBlogPosts config = map f zippedDates
+allBlogPosts config = map createSealText zippedDates
   where
-    f = uncurry $ sealText config
+    createSealText = uncurry $ sealText config
     zippedDates = zip [1..] (allDatesSince (startDate config))
 
-allDatesSince :: Day -> [Day]
-allDatesSince startDate = map (`addDays` startDate) [0..daysSinceStart]
-  where
-    daysSinceStart = diffDays today startDate
-    {-# NOINLINE today #-}
-    today = unsafePerformIO $ utctDay <$> getCurrentTime
+    allDatesSince :: Day -> [Day]
+    allDatesSince startDate = map (`addDays` startDate) [0..daysSinceStart]
+      where
+        daysSinceStart = diffDays today startDate
+        {-# NOINLINE today #-}
+        today = unsafePerformIO $ utctDay <$> getCurrentTime
 
 writeToFile :: Config -> (FilePath, Text) -> IO()
 writeToFile config (fp, txt) = do
@@ -119,7 +119,7 @@ blogPost title see adj1 adj2 seal date imagesPath =
   Returns a filePath, and a corresponding random blog post
 -}
 sealText :: Config -> Integer -> Day -> (FilePath, Text)
-sealText config n date = ( fileName', bp)
+sealText config n date = ( fileName', bp )
   where
     fileName' =
          show date <> "-"
@@ -129,6 +129,7 @@ sealText config n date = ( fileName', bp)
     date'     = T.pack . show $ date
     title     = T.pack $ "Seal Post Number " <> show n
     title'    = T.replace " " "-" title
+    sealImagesPath' = sealImagesPath config
 
     bp = blogPost' (toGregorian date)
 
@@ -141,7 +142,7 @@ sealText config n date = ( fileName', bp)
         "older"
         "birthdaySeal.jpg"
         date
-        (sealImagesPath config)
+        sealImagesPath'
 
     blogPost' (_, 04, 01) =
       blogPost
@@ -151,7 +152,7 @@ sealText config n date = ( fileName', bp)
         "supermodel, singing"
         "singerSeal.jpg"
         date
-        (sealImagesPath config)
+        sealImagesPath'
 
     blogPost' (_, _, _) =
       blogPost
@@ -159,29 +160,30 @@ sealText config n date = ( fileName', bp)
         (randomPull $ looks config)
         (randomPull $ adjectives1 config)
         (randomPull $ adjectives2 config)
-        (randomPull $ unsafeListDirContents $ sealImagesPath config)
+        (randomPull $ unsafeListDirContents sealImagesPath')
         date
-        (sealImagesPath config)
+        sealImagesPath'
 
 
 {-
   Utils
 -}
   {-
-    Gives a random number between from and to
-    Uses unsafeIO to get the number out of IO
-    It's safe because we're only shuffling
-  -}
-randomNum :: Random a => a -> a -> a
-randomNum from to = unsafePerformIO $ randomRIO (from, to)
-
-  {-
     Given a list, returns a random element
   -}
 randomPull :: [a] -> a
 randomPull lst = lst !! r'
-  where r' = randomNum 0 l
-        l  = length lst - 1
+    where
+    r' = randomNum 0 l
+    l  = length lst - 1
+
+    {-
+      Gives a random number between from and to
+      Uses unsafeIO to get the number out of IO
+      It's safe because we're only shuffling
+    -}
+    randomNum :: Random a => a -> a -> a
+    randomNum from to = unsafePerformIO $ randomRIO (from, to)
 
 unsafeListDirContents :: FilePath -> [Text]
 unsafeListDirContents = map T.pack . sort . unsafePerformIO . listDirectory
