@@ -19,11 +19,17 @@
       in
       {
         devShells.default = pkgs.mkShell {
+          name = "seal-generator-shell";
+
           buildInputs = with pkgs.haskellPackages;
             [
               ghc'
               hlint
               haskell-language-server
+
+              (pkgs.writeShellScriptBin "build-seal-generator" ''
+                ${ghc'}/bin/ghc -outputdir dist -O2 -static generateSealPosts.hs
+              '')
             ];
         };
       });
