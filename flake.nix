@@ -18,18 +18,23 @@
         ]);
       in
       {
+        packages.default = pkgs.runCommand "generateSealPosts" { } ''
+          echo Generating seal posts
+          mkdir -p $out/bin
+          ${ghc'}/bin/ghc                 \
+            -O2                           \
+            -static                       \
+            -o $out/bin/generateSealPosts \
+            ${./generateSealPosts.hs}
+        '';
+
         devShells.default = pkgs.mkShell {
           name = "seal-generator-shell";
-
           buildInputs = with pkgs.haskellPackages;
             [
               ghc'
               hlint
               haskell-language-server
-
-              (pkgs.writeShellScriptBin "build-seal-generator" ''
-                ${ghc'}/bin/ghc -outputdir dist -O2 -static generateSealPosts.hs
-              '')
             ];
         };
       });

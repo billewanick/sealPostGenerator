@@ -6,8 +6,9 @@
 dist
 generateSealPosts
 
-# Direnv lorri stuff
+# Nix related
 .direnv
+result
 
 # Too many posts, hiding for now
 posts
