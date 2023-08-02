@@ -2,7 +2,7 @@
   description = "A Nix flake for a blog-post generating script, written in Haskell, with a seal bent.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     utils.url = "github:numtide/flake-utils";
   };
 
