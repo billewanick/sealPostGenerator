@@ -109,7 +109,7 @@ blogPost title see adj1 adj2 seal date imagesPath =
 
     $see this $adj1, $adj2 seal!
     <img
-      src="$imagesPath'/$seal"
+      src="/$imagesPath'/$seal"
       alt="A picture of a $adj1, $adj2 seal! <3"
       width="400"
     />
