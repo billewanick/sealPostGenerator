@@ -186,7 +186,10 @@ randomPull lst = lst !! r'
     randomNum from to = unsafePerformIO $ randomRIO (from, to)
 
 unsafeListDirContents :: FilePath -> [Text]
-unsafeListDirContents = map T.pack . sort . unsafePerformIO . listDirectory
+unsafeListDirContents = map T.pack . drop 2 . sort . unsafePerformIO . listDirectory
+--                                   ^^^^^^
+-- drop 2 used to remove the birthday and singer photos
+-- TODO: find a better way to hardcode this
 
 prettyPrint :: Show a => [a] -> IO ()
 prettyPrint = putStr . unlines . map show
