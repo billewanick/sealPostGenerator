@@ -13,8 +13,7 @@ import           Data.List          (sort)
 import           Data.Text          (Text)
 import qualified Data.Text          as T
 import qualified Data.Text.IO       as TIO
-import           Data.Time.Calendar (Day, addDays, diffDays, fromGregorian,
-                                     toGregorian)
+import           Data.Time.Calendar (Day, addDays, diffDays, toGregorian)
 import           Data.Time.Clock    (UTCTime (utctDay), getCurrentTime)
 import           Dhall              (FromDhall, Generic, auto, input)
 import           NeatInterpolation  (text)
@@ -22,7 +21,7 @@ import           NeatInterpolation  (text)
 import           System.Directory   (createDirectoryIfMissing, doesFileExist,
                                      listDirectory)
 import           System.IO.Unsafe   (unsafePerformIO)
-import           System.Random      (Random, randomRIO)
+import           System.Random      (Random (randoms), mkStdGen)
 
 
 {-
@@ -35,6 +34,7 @@ data Config = Config
   , sealImagesPath  :: FilePath
   , postsOutputPath :: FilePath
   , startDate       :: Day
+  , seed            :: Int
   } deriving (Generic, Show)
 instance FromDhall Config
 
@@ -68,8 +68,13 @@ generateAllBlogPosts config = forM_ allBlogPosts' writeToFile'
 allBlogPosts :: Config -> [(FilePath, Text)]
 allBlogPosts config = map createSealText zippedDates
   where
-    createSealText = uncurry $ sealText config
-    zippedDates = zip [1..] (allDatesSince (startDate config))
+    createSealText = uncurry3 $ sealText config
+    zippedDates = zip3 [1..] randomNumbers (allDatesSince (startDate config))
+    randomNumbers = randoms (mkStdGen (seed config))
+
+    -- | Converts a curried function to a function on a triple.
+    uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
+    uncurry3 f (a,b,c) = f a b c
 
     allDatesSince :: Day -> [Day]
     allDatesSince startDate = map (`addDays` startDate) [0..daysSinceStart]
@@ -88,38 +93,10 @@ writeToFile config (fp, txt) = do
 
 
 {-
-  Blog post format
--}
-blogPost
-  :: Text
-  -> Text
-  -> Text
-  -> Text
-  -> Text
-  -> Day
-  -> FilePath
-  -> Text
-blogPost title see adj1 adj2 seal date imagesPath =
-  let imagesPath' = T.pack imagesPath
-  in
-  [text|
-    ---
-    title: $title
-    ---
-
-    $see this $adj1, $adj2 seal!
-    <img
-      src="/$imagesPath'/$seal"
-      alt="A picture of a $adj1, $adj2 seal! <3"
-      width="400"
-    />
-  |]
-
-{-
   Returns a filePath, and a corresponding random blog post
 -}
-sealText :: Config -> Integer -> Day -> (FilePath, Text)
-sealText config n date = ( fileName', bp )
+sealText :: Config -> Integer -> Int -> Day -> (FilePath, Text)
+sealText config n rand date = ( fileName', bp )
   where
     fileName' =
          show date <> "-"
@@ -157,34 +134,48 @@ sealText config n date = ( fileName', bp )
     blogPost' (_, _, _) =
       blogPost
         title
-        (randomPull $ looks config)
-        (randomPull $ adjectives1 config)
-        (randomPull $ adjectives2 config)
-        (randomPull $ unsafeListDirContents sealImagesPath')
+        (randomPull rand (looks config))
+        (randomPull rand (adjectives1 config))
+        (randomPull rand (adjectives2 config))
+        (randomPull rand (unsafeListDirContents sealImagesPath'))
         date
         sealImagesPath'
+      where
+        randomPull r txts = txts !! (rand `mod` l)
+          where l = length txts - 1
+
+    {-
+      Blog post format
+    -}
+    blogPost
+      :: Text
+      -> Text
+      -> Text
+      -> Text
+      -> Text
+      -> Day
+      -> FilePath
+      -> Text
+    blogPost title see adj1 adj2 seal date imagesPath =
+      let imagesPath' = T.pack imagesPath
+      in
+      [text|
+        ---
+        title: $title
+        ---
+
+        $see this $adj1, $adj2 seal!
+        <img
+          src="/$imagesPath'/$seal"
+          alt="A picture of a $adj1, $adj2 seal! <3"
+          width="400"
+        />
+      |]
 
 
 {-
   Utils
 -}
-  {-
-    Given a list, returns a random element
-  -}
-randomPull :: [a] -> a
-randomPull lst = lst !! r'
-    where
-    r' = randomNum 0 l
-    l  = length lst - 1
-
-    {-
-      Gives a random number between from and to
-      Uses unsafeIO to get the number out of IO
-      It's safe because we're only shuffling
-    -}
-    randomNum :: Random a => a -> a -> a
-    randomNum from to = unsafePerformIO $ randomRIO (from, to)
-
 unsafeListDirContents :: FilePath -> [Text]
 unsafeListDirContents = map T.pack . drop 2 . sort . unsafePerformIO . listDirectory
 --                                   ^^^^^^

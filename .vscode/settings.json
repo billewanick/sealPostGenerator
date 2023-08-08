@@ -4,6 +4,7 @@
     "Dhall",
     "NOINLINE",
     "runghc",
+    "txts",
     "uncurry",
     "unlines",
     "utct"
